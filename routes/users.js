@@ -4,20 +4,43 @@ import jwt from "jsonwebtoken";
 import { hashPassword } from "../helpers";
 import models from "../models";
 import auth from "../middleware/auth";
+import sortable from "../middleware/sortable";
+import filterable from "../middleware/filterable";
 import validate, { ADD_USER_CONTACT, REGISTER } from "../middleware/validate";
 
 const router = Router();
+const sortFilterCols = ["createdAt", "updatedAt", "email", "name"];
 
-router.get("/", auth, async (req, res, next) => {
-  try {
-    const users = await models.User.findAll({
+router.get(
+  "/",
+  [auth, sortable(sortFilterCols), filterable(sortFilterCols)],
+  async (req, res, next) => {
+    const { sorting, filtering } = req;
+    const query = {
       attributes: { exclude: ["password"] }
-    });
-    return res.json(users);
-  } catch (err) {
-    next(err);
+    };
+
+    if (filtering) {
+      const filters = filtering.map(filter => {
+        const { column, value } = filter;
+        return {
+          [column]: value
+        };
+      });
+
+      query.where = filters;
+    }
+
+    if (sorting) query.order = sorting.map(s => [s.column, s.direction]);
+
+    try {
+      const users = await models.User.findAll(query);
+      return res.json(users);
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 router.post("/", auth, async (req, res, next) => {
   try {
@@ -62,26 +85,48 @@ router.get("/:id", auth, async (req, res, next) => {
   }
 });
 
-router.get("/:id/contacts", auth, async (req, res, next) => {
-  try {
-    const { id } = req.params;
+router.get(
+  "/:id/contacts",
+  [auth, sortable(sortFilterCols), filterable(sortFilterCols)],
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { sorting, filtering } = req;
 
-    // if it's not the user requesting
-    // deny access
-    if (req.user.id !== parseInt(id)) {
-      return res.send(401);
+      // if it's not the user requesting
+      // deny access
+      if (req.user.id !== parseInt(id)) {
+        return res.send(401);
+      }
+
+      let where = { userId: id };
+      const query = {
+        attributes: { exclude: ["userId"] }
+      };
+
+      if (filtering) {
+        const filters = filtering.map(filter => {
+          const { column, value } = filter;
+          return {
+            [column]: value
+          };
+        });
+
+        where = { ...where, ...filters.reduce((acc, curr) => curr) };
+      }
+
+      query.where = where;
+
+      if (sorting) query.order = sorting.map(s => [s.column, s.direction]);
+
+      const contacts = await models.Contact.findAll(query);
+
+      return res.json(contacts);
+    } catch (err) {
+      next(err);
     }
-
-    const contacts = await models.Contact.findAll({
-      where: { userId: id },
-      attributes: { exclude: ["userId"] }
-    });
-
-    return res.json(contacts);
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 router.post(
   "/:id/contacts",
