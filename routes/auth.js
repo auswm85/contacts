@@ -38,7 +38,7 @@ router.post("/", validate(AUTHENTICATE), async (req, res, next) => {
 
     res.cookie("accessToken", token, {
       httpOnly: true,
-      expires: new Date(Date.now() + 900000),
+      expires: new Date(Date.now() + 3600000 * 24 * 14),
       signed: true
     });
 

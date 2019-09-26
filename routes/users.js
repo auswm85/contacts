@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { hashPassword } from "../helpers";
 import models from "../models";
 import auth from "../middleware/auth";
-import validate, { USER_CONTACTS, REGISTER } from "../middleware/validate";
+import validate, { ADD_USER_CONTACT, REGISTER } from "../middleware/validate";
 
 const router = Router();
 
@@ -44,8 +44,7 @@ router.get("/:id", auth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await models.User.findOne({
-      where: { id: id },
+    const user = await models.User.findByPk(id, {
       attributes: { exclude: ["password"] }
     });
 
@@ -87,7 +86,7 @@ router.get("/:id/contacts", auth, async (req, res, next) => {
 router.post(
   "/:id/contacts",
   auth,
-  validate(USER_CONTACTS),
+  validate(ADD_USER_CONTACT),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -125,8 +124,8 @@ router.post("/register", validate(REGISTER), async (req, res, next) => {
 
   if (user) {
     return res
-      .status(400)
-      .json({ errors: ["Email taken, please choose another"] });
+      .status(422)
+      .json({ errors: ["Email is already in use, please choose another"] });
   }
 
   try {
@@ -136,12 +135,17 @@ router.post("/register", validate(REGISTER), async (req, res, next) => {
     const returnUsr = await models.User.create(user);
     const token = jwt.sign({ id: email }, process.env.JWT_SECRET);
 
+    res.cookie("accessToken", token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 3600000 * 24 * 14),
+      signed: true
+    });
+
     return res.json({
       id: returnUsr.id,
       email,
       name,
-      createdAt: returnUsr.createdAt,
-      token
+      createdAt: returnUsr.createdAt
     });
   } catch (err) {
     return res
