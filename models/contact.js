@@ -14,7 +14,7 @@ const contact = (sequelize, DataTypes) => {
 
     phone: {
       type: DataTypes.STRING,
-      unique: true
+      allowNull: true
     },
 
     contactType: {

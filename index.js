@@ -4,6 +4,7 @@ import helmet from "helmet";
 import uuid from "uuid";
 import morgan from "morgan";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import models, { sequelize } from "./models";
 import routes from "./routes";
@@ -20,6 +21,7 @@ app.use(cors(corsOpts));
 app.use(router);
 app.use(helmet());
 app.use(express.json());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(helmet());
 app.use(
