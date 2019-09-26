@@ -26,11 +26,9 @@ export default async (req, res, next) => {
     const { id } = data;
 
     try {
-      const user = await models.User.findOne({
-        where: { email: id }
-      });
+      const user = await models.User.findByPk(id);
 
-      if (!user || user.email !== id) return clear();
+      if (!user || user.id !== id) return clear();
 
       req.user = user;
       next();

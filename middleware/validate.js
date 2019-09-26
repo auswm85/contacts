@@ -2,6 +2,7 @@ import { check, body, sanitizeBody } from "express-validator";
 
 export const AUTHENTICATE = "AUTHENTICATE";
 export const REGISTER = "REGISTER";
+export const UPDATE_USER = "UPDATE_USER";
 export const ADD_USER_CONTACT = "ADD_USER_CONTACT";
 export const UPDATE_CONTACT = "UPDATE_CONTACT";
 
@@ -26,6 +27,15 @@ export default method => {
           .trim()
           .normalizeEmail(),
         sanitizeBody("name").trim()
+      ];
+    case UPDATE_USER:
+      return [
+        body("email", "Invalid email address")
+          .if((value, { req }) => req.body.email)
+          .isEmail(),
+        body("name", "name is required")
+          .if((value, { req }) => req.body.name)
+          .exists()
       ];
     case ADD_USER_CONTACT:
       return [

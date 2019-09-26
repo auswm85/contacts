@@ -1,12 +1,16 @@
 import { Router } from "express";
-import { validationResult } from "express-validator";
+import { validationResult, query } from "express-validator";
 import jwt from "jsonwebtoken";
 import { hashPassword } from "../helpers";
 import models from "../models";
 import auth from "../middleware/auth";
 import sortable from "../middleware/sortable";
 import filterable from "../middleware/filterable";
-import validate, { ADD_USER_CONTACT, REGISTER } from "../middleware/validate";
+import validate, {
+  ADD_USER_CONTACT,
+  REGISTER,
+  UPDATE_USER
+} from "../middleware/validate";
 
 const router = Router();
 const sortFilterCols = ["createdAt", "updatedAt", "email", "name"];
@@ -61,6 +65,63 @@ router.get("/:id", auth, async (req, res, next) => {
     return res.json(user);
   } catch (err) {
     next(err);
+  }
+});
+
+router.put("/:id", [auth, validate(UPDATE_USER)], async (req, res, next) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array().map(e => e.msg) });
+  }
+
+  try {
+    const { user } = req;
+    const { id } = req.params;
+    const updateUsr = await models.User.findByPk(id);
+
+    if (!updateUsr) return res.sendStatus(404);
+
+    if (user.id !== parseInt(updateUsr.id)) return res.sendStatus(401);
+
+    if (req.body.name) {
+      updateUsr.name = req.body.name;
+    }
+
+    // if the email is being updated
+    // and it doesn't match the users' existing
+    // check to make sure it doesn't exist before updating
+    if (req.body.email) {
+      const { email } = req.body;
+
+      if (email !== updateUsr.email) {
+        const emailExists = await models.User.findOne({
+          where: { email: email }
+        });
+
+        if (!emailExists) {
+          updateUsr.email = email;
+        } else {
+          return res
+            .send(400)
+            .json({ errors: ["email already exists, please chooe another"] });
+        }
+      }
+    }
+
+    const data = {
+      id: updateUsr.id,
+      name: updateUsr.name,
+      email: updateUsr.email,
+      createdAt: updateUsr.createdAt,
+      updatedAt: updateUsr.updatedAt
+    };
+
+    await updateUsr.save();
+    return res.json(data);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(err);
   }
 });
 

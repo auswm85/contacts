@@ -34,7 +34,7 @@ router.post("/", validate(AUTHENTICATE), async (req, res, next) => {
         .json({ errors: ["Invalid email/password combination"] });
     }
 
-    const token = jwt.sign({ id: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: 3600000 * 24 * 14
     });
 
