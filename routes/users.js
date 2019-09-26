@@ -42,27 +42,6 @@ router.get(
   }
 );
 
-router.post("/", auth, async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body;
-    const user = { name, email };
-    const hash = await hashPassword(password);
-
-    user.password = hash;
-
-    const newUser = await models.User.create(user);
-
-    return res.json({
-      id: newUser.id,
-      name,
-      email,
-      createdAt: newUser.createdAt
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
 router.get("/:id", auth, async (req, res, next) => {
   try {
     const { id } = req.params;
